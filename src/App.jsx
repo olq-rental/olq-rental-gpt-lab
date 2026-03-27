@@ -639,6 +639,7 @@ const fmt    = n => `¥${Number(n||0).toLocaleString()}`;
 const fmtD   = d => d ? new Date(d).toLocaleDateString("ja-JP") : "―";
 const uid    = () => `${Date.now()}-${Math.random().toString(36).slice(2,7)}`;
 const today  = () => new Date().toISOString().slice(0,10);
+const productSearchText = p => String(p?.fullName || [p?.brand, p?.name].filter(Boolean).join(" ")).toLowerCase();
 
 function resolvePrice(prod, cust) {
   if (!prod) return 0;
@@ -1510,7 +1511,7 @@ function RecordsTab({records,customers,products,onSave,showToast,onGoToCustomer,
             {(form.lines||[]).map((ln,li)=>{
               const lProd=products.find(p=>p.id===ln.productId);
               const lq=lineSearches[li]||"";
-              const lfp=lq.length>=1?products.filter(p=>p.fullName.toLowerCase().includes(lq.toLowerCase())):[];
+              const lfp=lq.length>=1?products.filter(p=>productSearchText(p).includes(lq.toLowerCase())):[];
               const qty=Number(ln.quantity)||1;
               const isManual=!!ln.isManual;
               return(
@@ -3479,7 +3480,7 @@ function CustomersTab({customers,products,records,onSave,showToast,presetCustome
   };
 
   const filteredSpProds = spQ.length>=1
-    ? products.filter(p=>p.fullName.toLowerCase().includes(spQ.toLowerCase()))
+    ? products.filter(p=>productSearchText(p).includes(spQ.toLowerCase()))
     : [];
   if(detailId){
     const c=customers.find(x=>x.id===detailId);
@@ -3903,7 +3904,7 @@ function ProductsTab({products,customers,onSave,showToast,allProducts}){
     }
   };
 
-  const filtered=products.filter(p=>!q||p.fullName.toLowerCase().includes(q.toLowerCase()));
+  const filtered=products.filter(p=>!q||productSearchText(p).includes(q.toLowerCase()));
   const getSPs=id=>customers.flatMap(c=>(c.specialPrices||[]).filter(s=>s.productId===id).map(s=>({...s,cname:c.name})));
 
   const submit=async()=>{
