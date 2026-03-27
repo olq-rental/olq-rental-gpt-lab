@@ -640,6 +640,7 @@ const fmtD   = d => d ? new Date(d).toLocaleDateString("ja-JP") : "―";
 const uid    = () => `${Date.now()}-${Math.random().toString(36).slice(2,7)}`;
 const today  = () => new Date().toISOString().slice(0,10);
 const productSearchText = p => String(p?.fullName || [p?.brand, p?.name].filter(Boolean).join(" ")).toLowerCase();
+const productDisplayName = p => p?.fullName || [p?.brand, p?.name].filter(Boolean).join(" ") || "(名称未設定)";
 
 function resolvePrice(prod, cust) {
   if (!prod) return 0;
@@ -1555,8 +1556,8 @@ function RecordsTab({records,customers,products,onSave,showToast,onGoToCustomer,
                         : <>
                             <div style={{position:"relative"}}><div style={{position:"absolute",left:7,top:"50%",transform:"translateY(-50%)",opacity:.4}}><Ico d={I.search} size={11}/></div>
                               <input value={lq} onChange={e=>setLineProdQ(li,e.target.value)} placeholder="検索..." style={{...S.inp,paddingLeft:24,fontSize:11,padding:"6px 8px 6px 24px"}}/></div>
-                            {lq.length>=1&&<select value={ln.productId} onChange={e=>{setLine(li,{productId:e.target.value});setLineProdQ(li,"");}} style={{...S.inp,fontSize:11,marginTop:2}} size={Math.min(4,lfp.length+1)}><option value="">{lfp.length}件</option>{lfp.map(p=><option key={p.id} value={p.id}>{p.fullName} {fmt(p.priceEx)}</option>)}</select>}
-                            {ln.productId&&!lq&&<div style={{fontSize:10,color:"#16a34a",marginTop:2}}>{lProd?.fullName||ln.equipmentName}</div>}
+                            {lq.length>=1&&<select value={ln.productId} onChange={e=>{setLine(li,{productId:e.target.value});setLineProdQ(li,"");}} style={{...S.inp,fontSize:11,marginTop:2}} size={Math.min(4,lfp.length+1)}><option value="">{lfp.length}件</option>{lfp.map(p=><option key={p.id} value={p.id}>{productDisplayName(p)} {fmt(p.priceEx)}</option>)}</select>}
+                            {ln.productId&&!lq&&<div style={{fontSize:10,color:"#16a34a",marginTop:2}}>{lProd ? productDisplayName(lProd) : ln.equipmentName}</div>}
                           </>
                       }
                     </div>
