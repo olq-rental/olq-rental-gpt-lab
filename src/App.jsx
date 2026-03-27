@@ -966,6 +966,9 @@ export default function App() {
   const [syncLog,    setSyncLog]    = useState([]);
   const [showLog,    setShowLog]    = useState(false);
   const [globalQ,    setGlobalQ]    = useState("");
+  const [syncRuns,   setSyncRuns]   = useState([]);
+  const [syncRunsLoading, setSyncRunsLoading] = useState(false);
+  const [syncRunsError, setSyncRunsError] = useState("");
 
   const showToast = (msg, ok=true) => { setToast({msg,ok}); setTimeout(()=>setToast(null),3000); };
 
@@ -1032,6 +1035,30 @@ export default function App() {
       if (manual) showToast("同期に失敗しました: "+(e?.message||"不明なエラー"), false);
     }
   };
+
+  const loadSyncRuns = async () => {
+    setSyncRunsLoading(true);
+    setSyncRunsError("");
+    try {
+      const { data, error } = await supabase
+        .from("sync_runs")
+        .select("id, status, started_at, finished_at, count_products, deleted_products, pages_tried, error_message")
+        .order("id", { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      setSyncRuns(data || []);
+    } catch (e) {
+      setSyncRuns([]);
+      setSyncRunsError(e?.message || "同期ログの読込に失敗しました");
+    } finally {
+      setSyncRunsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!session || !isAdmin || tab !== "sync-log") return;
+    loadSyncRuns();
+  }, [session, tab, isAdmin]);
 
   const saveProd = async n => {
     setProducts(n);
@@ -1124,6 +1151,7 @@ export default function App() {
     {id:"invoice",  label:"請求書",      icon:I.print},
     {id:"customers",label:"顧客管理",    icon:I.users},
     {id:"products", label:"製品マスタ",  icon:I.box},
+    ...(isAdmin ? [{id:"sync-log", label:"同期ログ", icon:I.list}] : []),
   ];
 
   // ---- auth guard ----
@@ -1202,6 +1230,53 @@ export default function App() {
         {tab==="invoice"   && !isAdmin && <div style={{padding:40,textAlign:"center",color:"#94a3b8",fontSize:14}}>請求書タブは管理者のみ閲覧できます。</div>}
         {tab==="customers" && <CustomersTab customers={customers} products={products} records={records} onSave={saveCust} showToast={showToast} presetCustomers={PRESET_CUSTOMERS} openCustomerId={openCustomerId} onOpenHandled={()=>setOpenCustomerId(null)}/>}
         {tab==="products"  && <ProductsTab  products={products}  customers={customers} onSave={saveProd} showToast={showToast} allProducts={ALL_PRODUCTS}/>}
+        {tab==="sync-log"  && isAdmin && (
+          <div style={{display:"grid",gap:12}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
+              <div style={{fontSize:14,fontWeight:700,color:"#0f172a"}}>同期ログ</div>
+              <button onClick={loadSyncRuns} style={S.ib("#2563eb")}>再読込</button>
+            </div>
+            <div style={{...S.card,overflow:"auto"}}>
+              {syncRunsLoading ? (
+                <div style={{padding:20,fontSize:13,color:"#64748b"}}>読み込み中...</div>
+              ) : syncRunsError ? (
+                <div style={{padding:20,fontSize:13,color:"#b91c1c"}}>{syncRunsError}</div>
+              ) : !syncRuns.length ? (
+                <div style={{padding:20,fontSize:13,color:"#64748b"}}>同期ログはありません。</div>
+              ) : (
+                <table style={{width:"100%",borderCollapse:"collapse",fontSize:12,minWidth:980}}>
+                  <thead>
+                    <tr style={{background:"#f8fafc",textAlign:"left"}}>
+                      <th style={S.td}>id</th>
+                      <th style={S.td}>status</th>
+                      <th style={S.td}>started_at</th>
+                      <th style={S.td}>finished_at</th>
+                      <th style={S.td}>count_products</th>
+                      <th style={S.td}>deleted_products</th>
+                      <th style={S.td}>pages_tried</th>
+                      <th style={S.td}>error_message</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {syncRuns.map((row) => (
+                      <tr key={row.id}>
+                        <td style={S.td}>{row.id}</td>
+                        <td style={S.td}>{row.status || "―"}</td>
+                        <td style={S.td}>{row.started_at ? new Date(row.started_at).toLocaleString("ja-JP") : "―"}</td>
+                        <td style={S.td}>{row.finished_at ? new Date(row.finished_at).toLocaleString("ja-JP") : "―"}</td>
+                        <td style={S.td}>{row.count_products ?? 0}</td>
+                        <td style={S.td}>{row.deleted_products ?? 0}</td>
+                        <td style={S.td}>{row.pages_tried ?? 0}</td>
+                        <td style={{...S.td,minWidth:240,whiteSpace:"pre-wrap"}}>{row.error_message || "―"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        )}
+        {tab==="sync-log"  && !isAdmin && <div style={{padding:40,textAlign:"center",color:"#94a3b8",fontSize:14}}>同期ログタブは管理者のみ閲覧できます。</div>}
       </div>
     </div>
   );
