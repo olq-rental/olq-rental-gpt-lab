@@ -951,7 +951,7 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  const isAdmin = session?.user?.user_metadata?.role === 'admin';
+  const isAdmin = session?.user?.app_metadata?.role === 'admin';
 
   // ---- App state ----
   const [products,  setProducts]  = useState(ALL_PRODUCTS);
